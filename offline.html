@@ -85,6 +85,8 @@ function itemsOf(order){
     var ga=GROUPS[a.group], gb=GROUPS[b.group];
     if (ga.order!==gb.order) return ga.order-gb.order;
     if (a.group==='other' && a.factory!==b.factory) return cmp(a.factory,b.factory);
+    var ka=a.vendor||a.name, kb=b.vendor||b.name;
+    var c=cmp(ka,kb); if (c) return c;
     return cmp(a.name,b.name);
   });
   return list;
