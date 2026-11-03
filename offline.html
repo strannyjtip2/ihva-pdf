@@ -202,7 +202,7 @@ function init(){
   ta.addEventListener('input',upd);
   document.getElementById('go').addEventListener('click',function(){
     loadFonts().then(function(){ var os=parse(ta.value); var doc=buildDoc(os,mode);
-      var nm='order-'+(os[0].number||os[0].order_id||'')+'-'+(mode==='giv'?'givaudan':mode==='nogiv'?'bez-givaudan':'vse')+'.pdf';
+      var nm='ihva-'+(os[0].number||os[0].order_id||'order')+'.pdf';
       pdfMake.createPdf(doc).download(nm);
     }).catch(function(e){ msg.className='err'; msg.textContent=e.message; });
   });
