@@ -23,11 +23,11 @@ button#go{background:#1f6f78;color:#fff;font-weight:600}
 <button class="mode" data-mode="nogiv">Всё кроме Givaudan</button>
 <button id="go">Сформировать</button></div>
 <div id="msg" class="info"></div>
-<div id="ver">v. 2026-11-03 сортировка по бренду · build 48bc2e8</div>
+<div id="ver">v. 2026-11-03 сортировка по бренду · build efc473e</div>
 </main>
 <script>
-(function(){var B='48bc2e8';
-try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});});
+(function(){var B='efc473e';
+try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});}).catch(function(){});
 if(window.caches)caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});});}catch(e){}
 if(location.protocol==='http:'||location.protocol==='https:'){
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
