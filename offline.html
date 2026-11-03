@@ -79,7 +79,7 @@ function itemsOf(order){
     var g = classify(p);
     var price = num(p.price), pd = (p.price_discount===undefined||p.price_discount==='')?price:num(p.price_discount), amt = num(p.amount);
     return {group:g, name:dec(p.name), vendor:dec(p.vendor), factory:param(p,'Завод'), quality:param(p,'Качество'),
-            price:price, pd:pd, amount:amt, sum:pd*amt, unit:(g==='givaudan'||g==='luzi'||g==='other'||g==='water')?'г':'шт'};
+            price:price, pd:pd, amount:amt, sum:pd*amt, unit:(g==='water')?'мл':(g==='givaudan'||g==='luzi'||g==='other')?'г':'шт'};
   });
   list.sort(function(a,b){
     var ga=GROUPS[a.group], gb=GROUPS[b.group];
