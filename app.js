@@ -55,7 +55,6 @@ function itemsOf(order){
     var ga=GROUPS[a.group], gb=GROUPS[b.group];
     if (ga.order!==gb.order) return ga.order-gb.order;
     if (a.group==='other' && a.factory!==b.factory) return cmp(a.factory,b.factory);
-    var v = cmp(a.vendor,b.vendor); if (v) return v;
     return cmp(a.name,b.name);
   });
   return list;
@@ -65,78 +64,90 @@ function filterItems(list, mode){
   if (mode==='nogiv') return list.filter(function(i){return i.group!=='givaudan';});
   return list;
 }
-// ---- Построение PDF ----
-var TEAL='#1f6f78', GREY='#777777', LIGHT='#eef3f4';
-function groupTitle(g, first){ return g.group==='other' ? 'Завод '+g.factory : GROUPS[g.group].title; }
-function buildOrderContent(order, mode, items, isLast){
-  var d = order.data||{}, o = d.order||{}, del = order.delivery||d.delivery||{}, ui = order.user_info||{};
-  var fio = [o.familia, o.fio].filter(Boolean).join(' ') || ui.name || '';
-  var phone = o.phone || ui.phone || '';
-  var city = o.gorod || '';
-  var addr = del.address || (del.settings && del.settings['Адрес доставки']) || '';
-  var comment = dec(o.kommentarij || order.comment || '').trim();
-  var num_ = order.number || order.order_id || '';
-  var created = order.created ? String(order.created).slice(0,10).split('-').reverse().join('.') : '';
-  var modeName = mode==='giv'?'только Givaudan':mode==='nogiv'?'всё кроме Givaudan':'всё';
-  var total = items.reduce(function(s,i){return s+i.sum;},0);
-  var c = [];
-  c.push({columns:[
-    {text:'Заказ №'+num_, style:'h1', width:'*'},
-    {text:[created, created?'\n':'', {text:'Состав: '+modeName, color:GREY}], alignment:'right', fontSize:10, width:'auto'}
-  ]});
-  c.push({text:[fio, city?(' · '+city):'', phone?(' · '+phone):''], fontSize:11, margin:[0,2,0,10]});
-  var body = [], widths=[18,'*',150,70,46,50,60];
-  var headerRow = ['№','Бренд','Название','Качество','Кол-во','Цена','Сумма'].map(function(t,i){return {text:t,bold:true,fontSize:8.5,color:'#fff',fillColor:TEAL,alignment:i>=4?'right':'left',margin:[0,2,0,2]};});
-  var cur=null, n=0, gsum=0, rows=[];
-  function flush(){
-    if(cur===null) return;
-    rows.push([{text:'Итого: '+cur, colSpan:6, bold:true, alignment:'right', fontSize:9, fillColor:LIGHT},{},{},{},{},{}, {text:fmt(gsum)+' ₽', bold:true, alignment:'right', fontSize:9, fillColor:LIGHT}]);
-  }
-  items.forEach(function(i){
-    var t = groupTitle(i);
-    if (t!==cur){ flush(); cur=t; gsum=0;
-      rows.push([{text:t, colSpan:7, bold:true, fontSize:11, color:TEAL, margin:[0,6,0,2], border:[false,false,false,true]},{},{},{},{},{},{}]);
-    }
-    n++; gsum+=i.sum;
-    var priceCell = {text:fmt(i.pd)+'\u00a0₽', alignment:'right', fontSize:9};
-    if (Math.abs(i.pd-i.price)>1e-9) priceCell = {alignment:'right', fontSize:9, stack:[{text:fmt(i.pd)+'\u00a0₽'},{text:fmt(i.price)+'\u00a0₽',decoration:'lineThrough',color:GREY,fontSize:7}]};
-    rows.push([{text:String(n),fontSize:8.5,color:GREY},{text:i.vendor,fontSize:9},{text:i.name,fontSize:9,bold:true},{text:i.quality,fontSize:8.5,color:GREY},
-      {text:fmt(i.amount)+'\u00a0'+i.unit,alignment:'right',fontSize:9},priceCell,{text:fmt(i.sum)+'\u00a0₽',alignment:'right',fontSize:9,bold:true}]);
+// ---- Построение PDF: термоэтикетки 58x40 мм, одна позиция = одна этикетка ----
+var PW=164.4094, PH=113.3858, MX=8.5039, TW=144;
+var MEAS={};
+function loadFonts(){
+  if (MEAS.ready) return MEAS.ready;
+  function ab(b64){ var bin=atob(b64), u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return u.buffer; }
+  var R=new FontFace('NSReg', ab(pdfMake.vfs['NotoSans-Regular.ttf'])), B=new FontFace('NSBold', ab(pdfMake.vfs['NotoSans-Bold.ttf']));
+  MEAS.ready = Promise.all([R.load(),B.load()]).then(function(){ document.fonts.add(R); document.fonts.add(B);
+    MEAS.ctx = document.createElement('canvas').getContext('2d'); });
+  return MEAS.ready;
+}
+function tw(text, size, bold){
+  var c=MEAS.ctx; c.font=(bold?'':'')+'200px '+(bold?'NSBold':'NSReg');
+  return c.measureText(text).width*size/200;
+}
+function wrap(text, size, bold, width){
+  var out=[];
+  String(text).split(/\n/).forEach(function(par){
+    var words=par.split(/\s+/).filter(Boolean), line='';
+    words.forEach(function(w){
+      var t=line?line+' '+w:w;
+      if (!line || tw(t,size,bold)<=width) line=t; else { out.push(line); line=w; }
+    });
+    out.push(line);
   });
-  flush();
-  if (!items.length) rows.push([{text:'Нет позиций для выбранного фильтра',colSpan:7,italics:true,color:GREY},{},{},{},{},{},{}]);
-  body = [headerRow].concat(rows);
-  c.push({table:{headerRows:1,widths:widths,body:body,dontBreakRows:true},
-    layout:{hLineWidth:function(i,node){return (i===0||i===1)?0.8:0.25;},vLineWidth:function(){return 0;},hLineColor:function(){return '#cfd8da';},paddingTop:function(){return 2;},paddingBottom:function(){return 2;}}});
-  c.push({text:'ИТОГО: '+fmt(total)+' ₽', style:'total', alignment:'right', margin:[0,10,0,0]});
-  // --- наклейки ---
-  function sticker(label, big, extra){
-    return {table:{widths:['*'],body:[[{stack:[{text:label,fontSize:9,color:GREY,margin:[0,0,0,4]}].concat(big), margin:[12,10,12,12]}]]},
-      layout:{hLineWidth:function(){return 1.2;},vLineWidth:function(){return 1.2;},hLineColor:function(){return '#222';},vLineColor:function(){return '#222';}}, margin:[0,0,0,16]};
+  return out;
+}
+// baseline (pt от верха) -> y верха строки для pdfmake (calibrated: ascent = ASC*size)
+var ASC=1.069;
+function put(page, text, size, bold, baseline){
+  if(text==='') return;
+  page.push({text:text, font:bold?'NotoSans-Bold':'NotoSans', bold:false, fontSize:size, lineHeight:1,
+    absolutePosition:{x:MX, y:baseline-ASC*size}, noWrap:true});
+}
+function blockLines(page, text, size, bold, y0, pitch){
+  var ls=wrap(text,size,bold,TW), y=y0;
+  ls.forEach(function(l,i){ put(page,l,size,bold,y); y+=pitch; });
+  return y0+pitch*(ls.length-1);   // baseline последней строки
+}
+function isPerfume(g){ return g==='givaudan'||g==='luzi'||g==='other'; }
+function itemLabel(it){
+  var p=[];
+  var last=blockLines(p, it.name, 11, true, 20.4, 13.4);
+  if (isPerfume(it.group)){
+    blockLines(p, it.vendor, 10, false, last+10.4, 12);
+    put(p, it.factory, 10, true, 70.9);
+    put(p, it.quality, 9, false, 83.6);
   }
-  c.push({text:'', pageBreak:'before'});
-  c.push(sticker('Получатель',[
-    {text:fio||'—',fontSize:26,bold:true},
-    {text:phone||'',fontSize:18,margin:[0,4,0,0]},
-    {text:[city, (city&&addr&&addr.indexOf(city)<0)?', ':'' , (addr.indexOf(city)<0||!city)?addr:''].join('') || addr,fontSize:16,margin:[0,8,0,0]},
-    ]));
-  c.push(sticker('Адрес доставки',[{text:addr||'—',fontSize:22,bold:true}]));
-  c.push(sticker('Способ доставки',[{text:(del.name||'—'),fontSize:26,bold:true}]));
-  c.push(sticker('Сумма заказа',[{text:fmt(total)+' ₽',fontSize:40,bold:true},{text:'Заказ №'+num_+' · '+modeName+' · позиций: '+items.length,fontSize:9,color:GREY,margin:[0,4,0,0]}]));
-  c.push(sticker('Комментарий',[{text:comment||'—',fontSize:18,color:comment?'#000':GREY}]));
-  if(!isLast) c.push({text:'',pageBreak:'after'});
-  return c;
+  put(p, fmt(it.amount)+' '+it.unit, 12, true, 96.4);
+  return p;
+}
+function orderLabel(order, total){
+  var d=order.data||{}, o=d.order||{}, del=order.delivery||d.delivery||{}, ui=order.user_info||{};
+  var fio=[o.fio,o.familia].filter(Boolean).join(' ')||ui.name||'';
+  var phone=String(o.phone||ui.phone||'').trim(); if(/^\d/.test(phone)) phone='+'+phone;
+  var email=o.email||ui.email||'', city=o.gorod||'';
+  var link=o.predpocitaemyj_vami_sposob_svazi_2||'';
+  var addr=del.address||(del.settings&&del.settings['Адрес доставки'])||'';
+  var p=[]; var y=18.5;
+  put(p,'Заказ №'+(order.number||order.order_id||''),10,true,y); y=29.5;
+  [[fio,true],[phone],[email],[city],[link?'Связь: '+link:'']].forEach(function(r){ if(r[0]){ put(p,r[0],8,!!r[1],y); y+=9; } });
+  if(del.name){ put(p,'Доставка: '+del.name,8,true,y); y+=9; }
+  if(addr){ wrap('Адрес: '+addr,8,false,TW).forEach(function(l){ put(p,l,8,false,y); y+=9; }); }
+  put(p, fmt(total)+'\u00a0₽', 9, true, 104.9);
+  return p;
+}
+function commentLabel(text){
+  var p=[]; put(p,'Комментарий',12,true,21.4);
+  blockLines(p,text,7,false,37.4,8.6);
+  return p;
 }
 function buildDoc(orders, mode){
-  var content=[];
-  orders.forEach(function(o,idx){
-    var items = filterItems(itemsOf(o), mode);
-    content = content.concat(buildOrderContent(o, mode, items, idx===orders.length-1));
+  var pages=[];
+  orders.forEach(function(o){
+    var items=filterItems(itemsOf(o),mode), total=items.reduce(function(s,i){return s+i.sum;},0);
+    items.forEach(function(it){ pages.push(itemLabel(it)); });
+    pages.push(orderLabel(o,total));
+    var cm=dec((o.data&&o.data.order&&o.data.order.kommentarij)||o.comment||'').trim();
+    if(cm) pages.push(commentLabel(cm));
   });
-  return {pageSize:'A4',pageMargins:[28,30,28,30],content:content,
-    defaultStyle:{font:'Roboto',fontSize:10},
-    styles:{h1:{fontSize:20,bold:true,color:TEAL},total:{fontSize:16,bold:true}},
-    footer:function(p,n){return {text:p+' / '+n,alignment:'center',fontSize:8,color:GREY,margin:[0,8,0,0]};}};
+  var content=[];
+  pages.forEach(function(p,i){ content.push({text:'',fontSize:1,pageBreak:i?'before':undefined}); content=content.concat(p); });
+  return {pageSize:{width:PW,height:PH},pageMargins:[0,0,0,0],content:content,
+    defaultStyle:{font:'NotoSans',fontSize:10}, info:{title:'Этикетки заказа'}};
 }
 function parse(text){
   var t=text.trim(); if(!t) throw new Error('Вставьте JSON заказа.');
@@ -160,10 +171,10 @@ function init(){
   }
   ta.addEventListener('input',upd);
   document.getElementById('go').addEventListener('click',function(){
-    try{ var os=parse(ta.value); var doc=buildDoc(os,mode);
+    loadFonts().then(function(){ var os=parse(ta.value); var doc=buildDoc(os,mode);
       var nm='order-'+(os[0].number||os[0].order_id||'')+'-'+(mode==='giv'?'givaudan':mode==='nogiv'?'bez-givaudan':'vse')+'.pdf';
       pdfMake.createPdf(doc).download(nm);
-    }catch(e){ msg.className='err'; msg.textContent=e.message; }
+    }).catch(function(e){ msg.className='err'; msg.textContent=e.message; });
   });
 }
 if (typeof document!=='undefined') document.addEventListener('DOMContentLoaded',init);
