@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <title>PDF заказа — ihva</title>
 <style>
 body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f4f6f7;color:#1c2a2d}
@@ -11,6 +12,7 @@ textarea{width:100%;height:320px;box-sizing:border-box;font:12px/1.4 ui-monospac
 button{font:inherit;padding:10px 16px;border-radius:8px;border:1px solid #1f6f78;background:#fff;color:#1f6f78;cursor:pointer}
 button.mode.on{background:#1f6f78;color:#fff}
 button#go{background:#1f6f78;color:#fff;font-weight:600}
+#ver{margin-top:18px;font-size:12px;color:#889}#ver.bad{color:#b3261e;font-weight:600}
 #msg{min-height:22px;font-size:14px}.err{color:#b3261e}.info{color:#445}
 </style></head><body><main>
 <h1>PDF заказа</h1><p class="sub">Вставьте JSON заказа, выберите набор позиций и нажмите «Сформировать».</p>
@@ -21,8 +23,22 @@ button#go{background:#1f6f78;color:#fff;font-weight:600}
 <button class="mode" data-mode="nogiv">Всё кроме Givaudan</button>
 <button id="go">Сформировать</button></div>
 <div id="msg" class="info"></div>
+<div id="ver">v. 2026-11-03 сортировка по бренду · build 48bc2e8</div>
 </main>
-<script src="lib/pdfmake.min.js"></script>
-<script src="lib/fonts.js"></script>
-<script src="app.js"></script>
+<script>
+(function(){var B='48bc2e8';
+try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});});
+if(window.caches)caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});});}catch(e){}
+if(location.protocol==='http:'||location.protocol==='https:'){
+fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
+ if(j.build&&j.build!==B){
+  var k='reloaded-'+j.build;
+  if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,'1');location.replace(location.pathname+'?v='+j.build);}
+  else{var v=document.getElementById('ver');v.className='bad';v.textContent='Загружена устаревшая версия страницы. Нажмите Ctrl+F5. Актуальная: '+j.label;}
+ }}).catch(function(){});}
+})();
+</script>
+<script src="lib/pdfmake.min.js?v=48bc2e8"></script>
+<script src="lib/fonts.js?v=48bc2e8"></script>
+<script src="app.js?v=48bc2e8"></script>
 </body></html>
