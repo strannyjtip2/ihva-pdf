@@ -27,10 +27,26 @@ function param(p, key){
   for (var i=0;i<arr.length;i++){ var o = arr[i]||{}; for (var k in o){ if (k.toLowerCase()===key.toLowerCase()) return dec(o[k]); } }
   return '';
 }
+function brandOf(p){
+  var v = (p.vendor!=null && typeof p.vendor!=='object') ? dec(p.vendor) : '';
+  if (!v.trim()) { var c=['brand','manufacturer','producer','vendor_name']; for (var i=0;i<c.length;i++){ if (p[c[i]]!=null && typeof p[c[i]]!=='object' && dec(p[c[i]]).trim()){ v=dec(p[c[i]]); break; } } }
+  if (!v.trim()) { var k=['Бренд','Brand','Производитель','Vendor','Марка']; for (var j=0;j<k.length;j++){ var x=param(p,k[j]); if (x.trim()){ v=x; break; } } }
+  return v.replace(/[\u00a0\u2000-\u200b\u202f\u3000]/g,' ').replace(/\s+/g,' ').trim();
+}
+// детерминированный ключ сортировки: не зависит от браузера/локали
+function skey(s){
+  s = String(s||'');
+  try { s = s.normalize('NFKC'); } catch(e){}
+  s = s.toLowerCase().replace(/ё/g,'е').replace(/[^a-z0-9\u0430-\u044f ]+/g,' ').replace(/\s+/g,' ').trim();
+  // латиница раньше кириллицы, числа внутри строки сравниваем как числа
+  return s.replace(/[\u0430-\u044f]/g,function(ch){ return String.fromCharCode(0x1000+ch.charCodeAt(0)); })
+          .replace(/\d+/g,function(d){ return ('00000000'+d).slice(-8); });
+}
+function cmp(a,b){ var x=skey(a), y=skey(b); return x<y?-1:x>y?1:0; }
 // ---- Классификация позиции ----
 function classify(p){
   var name = dec(p.name).toLowerCase();
-  var vendor = dec(p.vendor).toLowerCase();
+  var vendor = brandOf(p).toLowerCase();
   var folders = String(p.folders||'').split(',').map(function(s){return s.trim();});
   var factory = param(p,'Завод');
   var f = factory.toLowerCase();
@@ -43,12 +59,11 @@ function classify(p){
   if (f) return 'accessories';
   return 'misc';
 }
-function cmp(a,b){ return a.localeCompare(b,'ru',{sensitivity:'base',numeric:true}); }
 function itemsOf(order){
-  var list = (order.products||[]).map(function(p){
+  var list = (order.products||[]).map(function(p,ix){
     var g = classify(p);
     var price = num(p.price), pd = (p.price_discount===undefined||p.price_discount==='')?price:num(p.price_discount), amt = num(p.amount);
-    return {group:g, name:dec(p.name), vendor:dec(p.vendor), factory:param(p,'Завод'), quality:param(p,'Качество'),
+    return {idx:ix, group:g, name:dec(p.name), vendor:brandOf(p), factory:param(p,'Завод'), quality:param(p,'Качество'),
             price:price, pd:pd, amount:amt, sum:pd*amt, unit:(g==='water')?'мл':(g==='givaudan'||g==='luzi'||g==='other')?'г':'шт'};
   });
   list.sort(function(a,b){
@@ -57,7 +72,7 @@ function itemsOf(order){
     if (a.group==='other' && a.factory!==b.factory) return cmp(a.factory,b.factory);
     var ka=a.vendor||a.name, kb=b.vendor||b.name;
     var c=cmp(ka,kb); if (c) return c;
-    return cmp(a.name,b.name);
+    return cmp(a.name,b.name) || (a.idx-b.idx);
   });
   return list;
 }
