@@ -115,6 +115,11 @@ function put(page, text, size, bold, baseline){
   page.push({text:text, font:bold?'NotoSans-Bold':'NotoSans', bold:false, fontSize:size, lineHeight:1,
     absolutePosition:{x:MX, y:baseline-ASC*size}, noWrap:true});
 }
+function putAt(page, text, size, bold, baseline, x){
+  if(text==='') return;
+  page.push({text:text, font:bold?'NotoSans-Bold':'NotoSans', bold:false, fontSize:size, lineHeight:1,
+    absolutePosition:{x:x, y:baseline-ASC*size}, noWrap:true});
+}
 function blockLines(page, text, size, bold, y0, pitch){
   var ls=wrap(text,size,bold,TW), y=y0;
   ls.forEach(function(l,i){ put(page,l,size,bold,y); y+=pitch; });
@@ -141,6 +146,7 @@ function orderLabel(order, total){
   var addr=del.address||(del.settings&&del.settings['Адрес доставки'])||'';
   var title='ihva-'+(order.number||order.order_id||'');
   var totalStr=fmt(total)+'\u00a0₽';
+  var sumWord='сумма';
   var fields=[];
   if(fio) fields.push({t:fio, bold:true});
   if(phone) fields.push({t:phone, bold:false});
@@ -150,46 +156,49 @@ function orderLabel(order, total){
   if(del.name) fields.push({t:'Доставка: '+del.name, bold:true});
   if(addr) fields.push({t:'Адрес: '+addr, bold:false});
 
-  // body was 8pt → 6pt (−2); title 10→8; total 9→8. Auto-shrink if still too tall.
-  var preferTotalY=104.9, maxTotalY=PH-5;
+  // Heading: left «ihva-N» bold, right «сумма» regular + amount bold. Shrink if too wide.
+  var headSize=8, minGap=4;
+  function headWidth(hs){
+    return tw(title,hs,true)+minGap+tw(sumWord,hs,false)+tw(' ',hs,false)+tw(totalStr,hs,true);
+  }
+  while(headSize>5 && headWidth(headSize)>TW) headSize-=0.5;
+
+  // Body keeps 6pt; no bottom total — use freed space; auto-shrink only if still too tall.
+  var maxContentY=PH-5;
   var chosen=null;
   for (var bodySize=6; bodySize>=4; bodySize-=0.5){
-    var titleSize=Math.max(6, bodySize+2);
-    var totalSize=Math.max(6, bodySize+1.5);
     var pitch=bodySize+1;
     var rows=[];
     fields.forEach(function(f){
       wrap(f.t, bodySize, !!f.bold, TW).forEach(function(l){ rows.push({text:l, bold:!!f.bold}); });
     });
-    var yTitle=14+titleSize*0.7;
-    var yStart=yTitle+(titleSize+1.2);
+    var yTitle=14+headSize*0.7;
+    var yStart=yTitle+(headSize+1.2);
     var contentLast=rows.length? yStart+pitch*(rows.length-1) : yTitle;
-    var minTotalY=contentLast+Math.max(pitch, totalSize+1);
-    var totalY=Math.max(minTotalY, preferTotalY);
-    if (totalY>maxTotalY){
-      if (minTotalY>maxTotalY) continue; // shrink further
-      totalY=maxTotalY;
-      if (minTotalY>totalY) continue;
+    if (contentLast<=maxContentY){
+      chosen={rows:rows, yTitle:yTitle, yStart:yStart, pitch:pitch, bodySize:bodySize, headSize:headSize};
+      break;
     }
-    chosen={rows:rows, yTitle:yTitle, yStart:yStart, pitch:pitch, totalY:totalY,
-            titleSize:titleSize, bodySize:bodySize, totalSize:totalSize};
-    break;
   }
   if(!chosen){
-    // last resort: squeeze with min sizes, clamp total to bottom
-    var bodySize=4, titleSize=6, totalSize=6, pitch=5;
+    var bodySize=4, pitch=5;
     var rows=[];
     fields.forEach(function(f){
       wrap(f.t, bodySize, !!f.bold, TW).forEach(function(l){ rows.push({text:l, bold:!!f.bold}); });
     });
-    var yTitle=12+titleSize*0.7, yStart=yTitle+(titleSize+1);
-    chosen={rows:rows, yTitle:yTitle, yStart:yStart, pitch:pitch, totalY:maxTotalY,
-            titleSize:titleSize, bodySize:bodySize, totalSize:totalSize};
+    var yTitle=12+headSize*0.7, yStart=yTitle+(headSize+1);
+    chosen={rows:rows, yTitle:yTitle, yStart:yStart, pitch:pitch, bodySize:bodySize, headSize:headSize};
   }
-  var p=[];
-  put(p, title, chosen.titleSize, true, chosen.yTitle);
+
+  var p=[], hs=chosen.headSize;
+  put(p, title, hs, true, chosen.yTitle);
+  var rightEdge=MX+TW;
+  var amtW=tw(totalStr, hs, true);
+  var spW=tw(' ', hs, false);
+  var wordW=tw(sumWord, hs, false);
+  putAt(p, totalStr, hs, true, chosen.yTitle, rightEdge-amtW);
+  putAt(p, sumWord, hs, false, chosen.yTitle, rightEdge-amtW-spW-wordW);
   chosen.rows.forEach(function(r,i){ put(p, r.text, chosen.bodySize, r.bold, chosen.yStart+i*chosen.pitch); });
-  put(p, totalStr, chosen.totalSize, true, chosen.totalY);
   return p;
 }
 function commentLabel(text){
