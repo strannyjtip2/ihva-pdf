@@ -23,10 +23,10 @@ button#go{background:#1f6f78;color:#fff;font-weight:600}
 <button class="mode" data-mode="nogiv">Всё кроме Givaudan</button>
 <button id="go">Сформировать</button></div>
 <div id="msg" class="info"></div>
-<div id="ver">v. 2026-11-03 сортировка по бренду · build 83a7bae</div>
+<div id="ver">v. 2026-11-09 контакты −2pt · ihva-N · build 6916d26</div>
 </main>
 <script>
-(function(){var B='83a7bae';
+(function(){var B='6916d26';
 try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});}).catch(function(){});
 if(window.caches)caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});});}catch(e){}
 if(location.protocol==='http:'||location.protocol==='https:'){
@@ -185,12 +185,57 @@ function orderLabel(order, total){
   var email=o.email||ui.email||'', city=o.gorod||'';
   var link=o.predpocitaemyj_vami_sposob_svazi_2||'';
   var addr=del.address||(del.settings&&del.settings['Адрес доставки'])||'';
-  var p=[]; var y=18.5;
-  put(p,'Заказ №'+(order.number||order.order_id||''),10,true,y); y=29.5;
-  [[fio,true],[phone],[email],[city],[link?'Связь: '+link:'']].forEach(function(r){ if(r[0]){ put(p,r[0],8,!!r[1],y); y+=9; } });
-  if(del.name){ put(p,'Доставка: '+del.name,8,true,y); y+=9; }
-  if(addr){ wrap('Адрес: '+addr,8,false,TW).forEach(function(l){ put(p,l,8,false,y); y+=9; }); }
-  put(p, fmt(total)+'\u00a0₽', 9, true, 104.9);
+  var title='ihva-'+(order.number||order.order_id||'');
+  var totalStr=fmt(total)+'\u00a0₽';
+  var fields=[];
+  if(fio) fields.push({t:fio, bold:true});
+  if(phone) fields.push({t:phone, bold:false});
+  if(email) fields.push({t:email, bold:false});
+  if(city) fields.push({t:city, bold:false});
+  if(link) fields.push({t:'Связь: '+link, bold:false});
+  if(del.name) fields.push({t:'Доставка: '+del.name, bold:true});
+  if(addr) fields.push({t:'Адрес: '+addr, bold:false});
+
+  // body was 8pt → 6pt (−2); title 10→8; total 9→8. Auto-shrink if still too tall.
+  var preferTotalY=104.9, maxTotalY=PH-5;
+  var chosen=null;
+  for (var bodySize=6; bodySize>=4; bodySize-=0.5){
+    var titleSize=Math.max(6, bodySize+2);
+    var totalSize=Math.max(6, bodySize+1.5);
+    var pitch=bodySize+1;
+    var rows=[];
+    fields.forEach(function(f){
+      wrap(f.t, bodySize, !!f.bold, TW).forEach(function(l){ rows.push({text:l, bold:!!f.bold}); });
+    });
+    var yTitle=14+titleSize*0.7;
+    var yStart=yTitle+(titleSize+1.2);
+    var contentLast=rows.length? yStart+pitch*(rows.length-1) : yTitle;
+    var minTotalY=contentLast+Math.max(pitch, totalSize+1);
+    var totalY=Math.max(minTotalY, preferTotalY);
+    if (totalY>maxTotalY){
+      if (minTotalY>maxTotalY) continue; // shrink further
+      totalY=maxTotalY;
+      if (minTotalY>totalY) continue;
+    }
+    chosen={rows:rows, yTitle:yTitle, yStart:yStart, pitch:pitch, totalY:totalY,
+            titleSize:titleSize, bodySize:bodySize, totalSize:totalSize};
+    break;
+  }
+  if(!chosen){
+    // last resort: squeeze with min sizes, clamp total to bottom
+    var bodySize=4, titleSize=6, totalSize=6, pitch=5;
+    var rows=[];
+    fields.forEach(function(f){
+      wrap(f.t, bodySize, !!f.bold, TW).forEach(function(l){ rows.push({text:l, bold:!!f.bold}); });
+    });
+    var yTitle=12+titleSize*0.7, yStart=yTitle+(titleSize+1);
+    chosen={rows:rows, yTitle:yTitle, yStart:yStart, pitch:pitch, totalY:maxTotalY,
+            titleSize:titleSize, bodySize:bodySize, totalSize:totalSize};
+  }
+  var p=[];
+  put(p, title, chosen.titleSize, true, chosen.yTitle);
+  chosen.rows.forEach(function(r,i){ put(p, r.text, chosen.bodySize, r.bold, chosen.yStart+i*chosen.pitch); });
+  put(p, totalStr, chosen.totalSize, true, chosen.totalY);
   return p;
 }
 function commentLabel(text){
