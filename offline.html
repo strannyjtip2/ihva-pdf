@@ -21,12 +21,13 @@ button#go{background:#1f6f78;color:#fff;font-weight:600}
 <button class="mode on" data-mode="all">Всё</button>
 <button class="mode" data-mode="giv">Только Givaudan</button>
 <button class="mode" data-mode="nogiv">Всё кроме Givaudan</button>
-<button id="go">Сформировать</button></div>
+<button id="go">Сформировать</button>
+<button id="copy">Скопировать текст</button></div>
 <div id="msg" class="info"></div>
-<div id="ver">v. 2026-11-09 сумма в шапке · build c5c157f</div>
+<div id="ver">v. 2026-11-12 копирование текста · build f3acdbf</div>
 </main>
 <script>
-(function(){var B='c5c157f';
+(function(){var B='f3acdbf';
 try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});}).catch(function(){});
 if(window.caches)caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});});}catch(e){}
 if(location.protocol==='http:'||location.protocol==='https:'){
@@ -183,7 +184,10 @@ function itemLabel(it){
   put(p, fmt(it.amount)+' '+it.unit, 12, true, 96.4);
   return p;
 }
-function orderLabel(order, total){
+function commentOf(order){
+  return dec((order.data&&order.data.order&&order.data.order.kommentarij)||order.comment||'').trim();
+}
+function orderContact(order, total){
   var d=order.data||{}, o=d.order||{}, del=order.delivery||d.delivery||{}, ui=order.user_info||{};
   var fio=[o.fio,o.familia].filter(Boolean).join(' ')||ui.name||'';
   var phone=String(o.phone||ui.phone||'').trim(); if(/^\d/.test(phone)) phone='+'+phone;
@@ -201,6 +205,45 @@ function orderLabel(order, total){
   if(link) fields.push({t:'Связь: '+link, bold:false});
   if(del.name) fields.push({t:'Доставка: '+del.name, bold:true});
   if(addr) fields.push({t:'Адрес: '+addr, bold:false});
+  return {title:title, totalStr:totalStr, sumWord:sumWord, fields:fields, comment:commentOf(order)};
+}
+function contactPlainText(order, total){
+  var c=orderContact(order,total);
+  var lines=[c.title+' '+c.sumWord+' '+c.totalStr];
+  c.fields.forEach(function(f){ lines.push(f.t); });
+  if(c.comment){ lines.push(''); lines.push('Комментарий'); lines.push(c.comment); }
+  return lines.join('\n');
+}
+function ordersPlainText(orders, mode){
+  return orders.map(function(o){
+    var items=filterItems(itemsOf(o),mode), total=items.reduce(function(s,i){return s+i.sum;},0);
+    return contactPlainText(o,total);
+  }).join('\n\n---\n\n');
+}
+// One left-to-right text run: title, сумма, amount — extractors see one logical line,
+// while characterSpacing keeps the amount flush to the right as before.
+function putHeading(page, title, sumWord, totalStr, size, baseline){
+  var titleW=tw(title,size,true);
+  var amtW=tw(totalStr,size,true);
+  var spW=tw(' ',size,false);
+  var wordW=tw(sumWord,size,false);
+  var gap=(MX+TW)-amtW-spW-wordW-(MX+titleW);
+  // pdfmake applies characterSpacing (n-1) times and trims lone spaces unless preserved.
+  page.push({
+    text:[
+      {text:title, font:'NotoSans-Bold', fontSize:size, bold:false},
+      {text:'  ', font:'NotoSans', fontSize:size, characterSpacing:gap-2*spW},
+      {text:sumWord+' ', font:'NotoSans', fontSize:size, bold:false},
+      {text:totalStr, font:'NotoSans-Bold', fontSize:size, bold:false}
+    ],
+    font:'NotoSans', fontSize:size, lineHeight:1, noWrap:true,
+    preserveLeadingSpaces:true, preserveTrailingSpaces:true,
+    absolutePosition:{x:MX, y:baseline-ASC*size}
+  });
+}
+function orderLabel(order, total){
+  var c=orderContact(order, total);
+  var title=c.title, totalStr=c.totalStr, sumWord=c.sumWord, fields=c.fields;
 
   // Heading: left «ihva-N» bold, right «сумма» regular + amount bold. Shrink if too wide.
   var headSize=8, minGap=4;
@@ -237,13 +280,7 @@ function orderLabel(order, total){
   }
 
   var p=[], hs=chosen.headSize;
-  put(p, title, hs, true, chosen.yTitle);
-  var rightEdge=MX+TW;
-  var amtW=tw(totalStr, hs, true);
-  var spW=tw(' ', hs, false);
-  var wordW=tw(sumWord, hs, false);
-  putAt(p, totalStr, hs, true, chosen.yTitle, rightEdge-amtW);
-  putAt(p, sumWord, hs, false, chosen.yTitle, rightEdge-amtW-spW-wordW);
+  putHeading(p, title, sumWord, totalStr, hs, chosen.yTitle);
   chosen.rows.forEach(function(r,i){ put(p, r.text, chosen.bodySize, r.bold, chosen.yStart+i*chosen.pitch); });
   return p;
 }
@@ -258,7 +295,7 @@ function buildDoc(orders, mode){
     var items=filterItems(itemsOf(o),mode), total=items.reduce(function(s,i){return s+i.sum;},0);
     items.forEach(function(it){ pages.push(itemLabel(it)); });
     pages.push(orderLabel(o,total));
-    var cm=dec((o.data&&o.data.order&&o.data.order.kommentarij)||o.comment||'').trim();
+    var cm=commentOf(o);
     if(cm) pages.push(commentLabel(cm));
   });
   var content=[];
@@ -274,7 +311,7 @@ function parse(text){
   arr.forEach(function(o){ if(!o||!Array.isArray(o.products)) throw new Error('В JSON нет списка products.'); });
   return arr;
 }
-window.IHVA = {parse:parse,buildDoc:buildDoc,itemsOf:itemsOf,filterItems:filterItems,classify:classify};
+window.IHVA = {parse:parse,buildDoc:buildDoc,itemsOf:itemsOf,filterItems:filterItems,classify:classify,commentOf:commentOf,orderContact:orderContact,contactPlainText:contactPlainText,ordersPlainText:ordersPlainText};
 function init(){
   var ta=document.getElementById('json'), msg=document.getElementById('msg'), mode='all';
   var btns=document.querySelectorAll('.mode');
@@ -292,6 +329,35 @@ function init(){
       var nm='ihva-'+(os[0].number||os[0].order_id||'order')+'.pdf';
       pdfMake.createPdf(doc).download(nm);
     }).catch(function(e){ msg.className='err'; msg.textContent=e.message; });
+  });
+  var copyBtn=document.getElementById('copy');
+  function flashCopied(){
+    copyBtn.textContent='Скопировано';
+    setTimeout(function(){ copyBtn.textContent='Скопировать текст'; }, 1800);
+  }
+  function fallbackCopy(text){
+    var el=document.createElement('textarea');
+    el.value=text; el.setAttribute('readonly','');
+    el.style.cssText='position:fixed;left:-9999px;top:0';
+    document.body.appendChild(el); el.select(); el.setSelectionRange(0,text.length);
+    var ok=false;
+    try{ ok=document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(el);
+    return ok;
+  }
+  copyBtn.addEventListener('click',function(){
+    try{
+      var os=parse(ta.value);
+      var text=ordersPlainText(os,mode);
+      var done=function(){ flashCopied(); };
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done).catch(function(){
+          if(fallbackCopy(text)) done();
+          else { msg.className='err'; msg.textContent='Не получилось скопировать текст.'; }
+        });
+      } else if(fallbackCopy(text)) done();
+      else { msg.className='err'; msg.textContent='Не получилось скопировать текст.'; }
+    }catch(e){ msg.className='err'; msg.textContent=e.message; }
   });
 }
 if (typeof document!=='undefined') document.addEventListener('DOMContentLoaded',init);

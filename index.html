@@ -21,12 +21,13 @@ button#go{background:#1f6f78;color:#fff;font-weight:600}
 <button class="mode on" data-mode="all">Всё</button>
 <button class="mode" data-mode="giv">Только Givaudan</button>
 <button class="mode" data-mode="nogiv">Всё кроме Givaudan</button>
-<button id="go">Сформировать</button></div>
+<button id="go">Сформировать</button>
+<button id="copy">Скопировать текст</button></div>
 <div id="msg" class="info"></div>
-<div id="ver">v. 2026-11-09 сумма в шапке · build c5c157f</div>
+<div id="ver">v. 2026-11-12 копирование текста · build f3acdbf</div>
 </main>
 <script>
-(function(){var B='c5c157f';
+(function(){var B='f3acdbf';
 try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister();});}).catch(function(){});
 if(window.caches)caches.keys().then(function(k){k.forEach(function(n){caches.delete(n);});});}catch(e){}
 if(location.protocol==='http:'||location.protocol==='https:'){
@@ -38,7 +39,7 @@ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r
  }}).catch(function(){});}
 })();
 </script>
-<script src="lib/pdfmake.min.js?v=c5c157f"></script>
-<script src="lib/fonts.js?v=c5c157f"></script>
-<script src="app.js?v=c5c157f"></script>
+<script src="lib/pdfmake.min.js?v=f3acdbf"></script>
+<script src="lib/fonts.js?v=f3acdbf"></script>
+<script src="app.js?v=f3acdbf"></script>
 </body></html>
