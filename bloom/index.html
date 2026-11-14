@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>بلوم روستري | Bloom Roastery — قهوة مختصة</title>
+<meta name="description" content="بلوم روستري — محمصة ومقهى قهوة مختصة. Bloom Roastery, specialty coffee.">
+<meta name="theme-color" content="#EFEAE6">
+<meta property="og:title" content="Bloom Roastery — بلوم روستري">
+<meta property="og:description" content="أيقظ روحك بقهوة مختصة · Awaken your spirit">
+<meta property="og:image" content="frames/d/180.webp">
+<link rel="icon" href="mark.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="loader" aria-live="polite">
+  <img src="logo.png" alt="Bloom Roastery" class="ld-logo">
+  <div class="ld-bar"><i id="ldFill"></i></div>
+  <div class="ld-pct"><span id="ldPct">0</span>%</div>
+</div>
+
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="veil" aria-hidden="true"></div>
+
+<header class="nav">
+  <a href="#top" class="nav-logo" aria-label="Bloom Roastery"><img src="logo.png" alt="Bloom Roastery"></a>
+  <nav class="nav-links">
+    <a href="#s2" data-p="0.3">التفتّح</a><a href="#s3" data-p="0.56">الترشيح</a><a href="#s4" data-p="1">الرشفة</a>
+  </nav>
+  <a class="btn btn-mini" href="https://wa.me/966553131751" target="_blank" rel="noopener">تواصل معنا</a>
+</header>
+
+<div class="rail" aria-hidden="true"><i id="railFill"></i></div>
+<div class="steps" aria-hidden="true"><span>٠١</span><span>٠٢</span><span>٠٣</span><span>٠٤</span></div>
+
+<div class="scroll-hint" id="hint"><i></i><span>مرّر للأسفل · Scroll</span></div>
+<main id="track">
+  <section id="top" class="panel" data-in="0" data-out="0.11">
+    <p class="eyebrow">قهوة مختصة · المدينة المنورة<em>Specialty coffee · Madinah</em></p>
+    <h1>أيقِظ <span class="hl">روحك</span></h1>
+    <p class="en-title">Awaken your spirit</p>
+    <p class="lead">حبوب مختارة من أفضل المحاصيل، محمّصة بعناية في بلوم روستري لتصل إلى فنجانك بكامل عطرها.</p>
+    <div class="ctas"><a class="btn" href="#s2" data-p="0.3">اكتشف الرحلة</a><a class="btn btn-ghost" href="https://www.instagram.com/bloomroastery/" target="_blank" rel="noopener">إنستغرام</a></div>
+  </section>
+
+  <section id="s2" class="panel" data-in="0.22" data-out="0.39">
+    <p class="num">٠٢</p>
+    <h2>دعها <span class="hl">تتفتّح</span></h2>
+    <p class="en-title">Let it bloom</p>
+    <p class="lead">أول صبّة ماء تُطلق غازات التحميص فتنتفخ القهوة وتتفتّح… لحظة صغيرة تصنع الفرق في كل كوب، ومنها جاء اسمنا.</p>
+  </section>
+
+  <section id="s3" class="panel" data-in="0.48" data-out="0.65">
+    <p class="num">٠٣</p>
+    <h2>قطرة <span class="hl">بعد</span> قطرة</h2>
+    <p class="en-title">Drop by drop</p>
+    <p class="lead">ترشيح هادئ يكشف شخصية كل محصول: حلاوة طبيعية، حموضة متوازنة، وقوام نظيف لا يُنسى.</p>
+  </section>
+
+  <section id="s4" class="panel panel-final" data-in="0.85" data-out="9">
+    <p class="num">٠٤</p>
+    <h2>كل رشفة <span class="hl">حكاية</span></h2>
+    <p class="en-title">Every sip tells a story</p>
+    <ul class="pills">
+      <li><b>الأصل</b><small>Origin</small></li>
+      <li><b>التحميص</b><small>Roast</small></li>
+      <li><b>النكهة</b><small>Flavor</small></li>
+    </ul>
+    <div class="ctas">
+      <a class="btn" href="https://wa.me/966553131751" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>اطلب عبر واتساب</a>
+      <a class="btn btn-ghost" href="https://www.instagram.com/bloomroastery/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.3A4.7 4.7 0 1 0 12 16.7 4.7 4.7 0 0 0 12 7.3zm0 7.7a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm6-7.9a1.1 1.1 0 1 1-2.2 0 1.1 1.1 0 0 1 2.2 0zM21.9 8c-.1-1.6-.4-3-1.6-4.2S17.6 2.2 16 2.1C14.3 2 9.7 2 8 2.1 6.4 2.2 5 2.5 3.8 3.7S2.2 6.4 2.1 8C2 9.7 2 14.3 2.1 16c.1 1.6.4 3 1.6 4.2s2.6 1.5 4.2 1.6c1.7.1 6.3.1 8 0 1.6-.1 3-.4 4.2-1.6s1.5-2.6 1.6-4.2c.1-1.7.1-6.3 0-8zm-2.1 9.9a3.3 3.3 0 0 1-1.9 1.9c-1.3.5-4.4.4-5.9.4s-4.6.1-5.9-.4a3.3 3.3 0 0 1-1.9-1.9c-.5-1.3-.4-4.4-.4-5.9s-.1-4.6.4-5.9a3.3 3.3 0 0 1 1.9-1.9C7.4 3.7 10.5 3.8 12 3.8s4.6-.1 5.9.4a3.3 3.3 0 0 1 1.9 1.9c.5 1.3.4 4.4.4 5.9s.1 4.6-.4 5.9z"/></svg><bdi dir="ltr">@bloomroastery</bdi></a>
+    </div>
+    <p class="foot">نموذج تصميم تجريبي لـ بلوم روستري · <bdi dir="ltr">Demo concept for Bloom Roastery</bdi></p>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
