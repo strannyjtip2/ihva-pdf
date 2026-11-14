@@ -27,10 +27,10 @@
     var ox = portrait ? (W-dw)/2 : (W-dw)*0.8, oy = (H-dh)/2;
     ctx.fillStyle='#EFEAE6'; ctx.fillRect(0,0,W,H); ctx.drawImage(im, ox, oy, dw, dh); }
   function progress(){ var max = document.documentElement.scrollHeight - window.innerHeight; return max>0 ? Math.min(1, Math.max(0, window.scrollY/max)) : 0; }
-  var cur = 0, FADE = 0.035;
+  var cur = 0, FADE = 0.035, REC = /[?&]rec/.test(location.search);
   function tick(){
     var p = progress(), target = mapP(p)*(N-1);
-    cur += (target-cur)*0.14; if (Math.abs(target-cur)<0.01) cur = target;
+    cur += REC ? (target-cur) : (target-cur)*0.14; if (Math.abs(target-cur)<0.01) cur = target;
     draw(cur);
     hint.classList.toggle('off', p>0.025);
     railFill.style.height = (p*100)+'%';
